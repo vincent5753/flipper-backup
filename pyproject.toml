@@ -1,0 +1,23 @@
+[project]
+name = "flipper-backup"
+version = "0.1.0"
+description = "Back up Flipper Zero internal storage (/int) and SD card (/ext) over USB CLI"
+authors = [
+    { name = "VP", email = "29014142+vincent5753@users.noreply.github.com" }
+]
+requires-python = ">=3.10"
+dependencies = [
+    "pyserial>=3.5",
+]
+
+[project.scripts]
+flipper-backup = "flipper_backup.cli:main"
+
+[build-system]
+requires = ["uv_build>=0.12.21,<0.13.0"]
+build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "pytest>=9.1.1",
+]
