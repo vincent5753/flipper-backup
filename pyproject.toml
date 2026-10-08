@@ -5,6 +5,7 @@ description = "Back up Flipper Zero internal storage (/int) and SD card (/ext) o
 authors = [
     { name = "VP", email = "29014142+vincent5753@users.noreply.github.com" }
 ]
+readme = "README.md"
 requires-python = ">=3.10"
 license = "GPL-3.0-only"
 license-files = ["LICENSE"]
