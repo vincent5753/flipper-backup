@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import logging
 import time
+from collections.abc import Callable
 from dataclasses import dataclass
 from typing import BinaryIO, Protocol
 
@@ -187,6 +188,11 @@ class FlipperCli:
             except UnicodeDecodeError:
                 skipped.append(Skipped(path, name, "non-ascii name"))
                 continue
+            # FAT 不允許 ? 出現在檔名，出現代表裝置把無法表示的字元替換掉了，
+            # 用這個名稱讀取一定回 invalid name/path
+            if "?" in text:
+                skipped.append(Skipped(path, name, "name contains '?' (unrepresentable characters)"))
+                continue
             # 雙引號無法放進 CLI 參數；/ 與 . .. 會讓本機路徑跳出備份目錄
             if '"' in text or "/" in text or text in ("", ".", ".."):
                 skipped.append(Skipped(path, name, "unsafe name"))
@@ -195,7 +201,7 @@ class FlipperCli:
             entries.append(Entry(_join(path, text), kind == b"[D]", size))
         return entries, skipped
 
-    def read_file(self, path: str, out: BinaryIO) -> int:
+    def read_file(self, path: str, out: BinaryIO, on_chunk: Callable[[int], None] | None = None) -> int:
         self._command(f'storage read_chunks "{path}" {self.chunk_size}')
         header = self._read_until(CLI_EOL)
         if header.startswith(STORAGE_ERROR):
@@ -211,6 +217,8 @@ class FlipperCli:
             chunk = self._read_exact(min(remaining, self.chunk_size))
             out.write(chunk)
             remaining -= len(chunk)
+            if on_chunk:
+                on_chunk(len(chunk))
         self._read_until(CLI_PROMPT)
         return size
 
