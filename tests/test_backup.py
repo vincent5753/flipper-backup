@@ -5,6 +5,7 @@ import io
 import json
 import re
 import shutil
+from pathlib import Path
 
 import pytest
 
@@ -392,7 +393,8 @@ def test_timeout_during_download_writes_report(tmp_path, monkeypatch):
 
 
 def test_default_output_under_flipper_backups(tmp_path, monkeypatch):
-    monkeypatch.chdir(tmp_path)
+    # 不要寫進真正的專案目錄
+    monkeypatch.setattr(cli_mod, "default_backup_root", lambda: tmp_path / "flipper-backups")
     tree = {b"/int": None, b"/int/a": b"x", b"/ext": None}
 
     assert run_main(monkeypatch, FakeFlipper(tree)) == 0
@@ -400,3 +402,26 @@ def test_default_output_under_flipper_backups(tmp_path, monkeypatch):
     assert re.fullmatch(r"\d{8}-\d{6}", dest.name)
     assert (dest / "int/a").read_bytes() == b"x"
     assert (dest / "backup-report.json").exists()
+
+
+def test_project_root_found_from_source_file():
+    # 測試環境是 editable 安裝，cli.py 位於 <專案>/src/flipper_backup/
+    root = cli_mod.find_project_root(Path(cli_mod.__file__))
+    assert root == Path(__file__).resolve().parents[1]
+    assert cli_mod.default_backup_root() == root / "flipper-backups"
+
+
+def test_project_root_ignores_other_projects(tmp_path):
+    (tmp_path / "pyproject.toml").write_text('[project]\nname = "something-else"\n')
+    module = tmp_path / "venv/site-packages/flipper_backup/cli.py"
+    module.parent.mkdir(parents=True)
+    module.touch()
+
+    assert cli_mod.find_project_root(module) is None
+
+
+def test_default_backup_root_falls_back_to_cwd(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(cli_mod, "find_project_root", lambda _: None)
+
+    assert cli_mod.default_backup_root() == tmp_path / "flipper-backups"
