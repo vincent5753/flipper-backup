@@ -389,3 +389,14 @@ def test_timeout_during_download_writes_report(tmp_path, monkeypatch):
     assert "Timed out" in report["aborted"]
     assert report["files"] == 0
     assert not list(out.rglob("*.part"))
+
+
+def test_default_output_under_flipper_backups(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    tree = {b"/int": None, b"/int/a": b"x", b"/ext": None}
+
+    assert run_main(monkeypatch, FakeFlipper(tree)) == 0
+    (dest,) = (tmp_path / "flipper-backups").iterdir()
+    assert re.fullmatch(r"\d{8}-\d{6}", dest.name)
+    assert (dest / "int/a").read_bytes() == b"x"
+    assert (dest / "backup-report.json").exists()

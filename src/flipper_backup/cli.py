@@ -36,7 +36,7 @@ class _StatusAwareHandler(logging.StreamHandler):
 def parse_args(argv: list[str] | None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Back up Flipper Zero /int and /ext over USB CLI")
     parser.add_argument("-p", "--port", default="auto", help="serial port (default: auto-detect)")
-    parser.add_argument("-o", "--output", type=Path, help="output directory (default: ./flipper-backup-<timestamp>)")
+    parser.add_argument("-o", "--output", type=Path, help="output directory (default: ./flipper-backups/<timestamp>)")
     parser.add_argument("--only", choices=[r.strip("/") for r in ROOTS], help="back up only one storage")
     parser.add_argument("--scan-only", action="store_true", help="list files and print totals without downloading")
     parser.add_argument("--verify", action="store_true", help="compare md5 of every file with the device (slow)")
@@ -88,7 +88,7 @@ def main(argv: list[str] | None = None) -> int:
         return 2
 
     started = datetime.now()
-    dest: Path = args.output or Path(f"flipper-backup-{started:%Y%m%d-%H%M%S}")
+    dest: Path = args.output or Path("flipper-backups", f"{started:%Y%m%d-%H%M%S}")
     if not args.scan_only and dest.exists() and any(dest.iterdir()):
         logger.error("Output directory %s is not empty", dest)
         return 2
